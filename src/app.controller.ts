@@ -5,13 +5,13 @@ import { AppService } from './app.service';
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
-  @Get()
-  importMoviesCsvFile() {
-    return this.appService.importMoviesCsvFile();
+  @Get('/list-all')
+  findAll() {
+    return this.appService.findAll();
   }
 
-  @Get('/list')
-  list() {
-    return this.appService.findAll();
+  @Get('/find-gra-worst-winners')
+  findGoldenRaspberryAwardsWorstWinners() {
+    return this.appService.findGoldenRaspberryAwardsWorstWinners();
   }
 }

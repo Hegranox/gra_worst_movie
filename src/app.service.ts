@@ -1,5 +1,6 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import fs from 'fs';
+import { groupBy } from 'lodash';
 import { CsvParser, ParsedData } from 'nest-csv-parser';
 import path from 'path';
 import { AppRepository } from './app.repository';
@@ -21,16 +22,29 @@ type Entity = {
   winner: 'yes' | '';
 };
 
+type Movie = {
+  id: string;
+  year: number;
+  title: string;
+  studios: string;
+  producers: string;
+  winner: boolean;
+};
+
 type CsvParseResult = ParsedData<InstanceType<typeof CSVEntity>>;
 
 @Injectable()
-export class AppService {
+export class AppService implements OnModuleInit {
   constructor(
     private readonly appRepository: AppRepository,
     private readonly csvParser: CsvParser,
   ) {}
 
-  async importMoviesCsvFile() {
+  async onModuleInit() {
+    await this.importMoviesCsvFile();
+  }
+
+  private async importMoviesCsvFile() {
     const csvFilePath = path.join(__dirname, 'assets', 'movielist.csv');
 
     try {
@@ -65,8 +79,12 @@ export class AppService {
       await this.appRepository.create({
         ...entity,
         year: Number(entity.year),
-        winner: entity.year === 'yes',
+        winner: entity.winner === 'yes',
       });
+    }
+
+    if (errors.length) {
+      console.log('🚀 ~ AppService ~ importMoviesCsvFile ~ errors:', errors);
     }
   }
 
@@ -112,5 +130,71 @@ export class AppService {
 
   findAll() {
     return this.appRepository.findAll();
+  }
+
+  async findGoldenRaspberryAwardsWorstWinners() {
+    const winners: Movie[] = [];
+
+    const winnersWithAtLeast2Awards: {
+      producer: string;
+      interval: number;
+      previousWin: number;
+      followingWin: number;
+    }[] = [];
+
+    const data = await this.appRepository.findAllWinners();
+
+    for (const winner of data) {
+      if (!winner.producers.includes('and')) {
+        winners.push(winner);
+        continue;
+      }
+
+      const producers = winner.producers
+        .split(',')
+        .flatMap((p) => p.trim().split(/\s+and\s+/));
+
+      for (const producer of producers) {
+        winners.push({
+          ...winner,
+          producers: producer,
+        });
+      }
+    }
+
+    const winnersGroupedByProducers = groupBy(winners, 'producers');
+
+    Object.keys(winnersGroupedByProducers)
+      .filter((key) => winnersGroupedByProducers[key].length > 1)
+      .forEach((key) => {
+        const movies = winnersGroupedByProducers[key].sort(
+          (a, b) => a.year - b.year,
+        );
+
+        for (let i = 0; i < movies.length - 1; i++) {
+          const currentWin = movies[i];
+          const nextWin = movies[i + 1];
+
+          winnersWithAtLeast2Awards.push({
+            producer: key,
+            interval: nextWin.year - currentWin.year,
+            previousWin: currentWin.year,
+            followingWin: nextWin.year,
+          });
+        }
+      });
+
+    const groupByWinRate = groupBy(winnersWithAtLeast2Awards, 'interval');
+    const intervals = Object.keys(groupByWinRate)
+      .map(Number)
+      .sort((a, b) => a - b);
+
+    const min = groupByWinRate[intervals[0]];
+    const max = groupByWinRate[intervals[intervals.length - 1]];
+
+    return {
+      min,
+      max,
+    };
   }
 }

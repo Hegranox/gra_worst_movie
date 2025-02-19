@@ -15,7 +15,7 @@ import Datastore from 'nedb-promises';
     {
       provide: 'NEDB',
       useFactory: () => {
-        return Datastore.create({ filename: 'database.db', autoload: true });
+        return Datastore.create({ autoload: true });
       },
     },
   ],
