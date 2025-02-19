@@ -17,6 +17,3 @@ async function bootstrap() {
   await app.listen(process.env.PORT ?? 3000);
 }
 void bootstrap();
-
-// CSV Validator
-// https://www.npmjs.com/package/csv-file-validator

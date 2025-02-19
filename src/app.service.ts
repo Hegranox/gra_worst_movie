@@ -4,6 +4,7 @@ import { groupBy } from 'lodash';
 import { CsvParser, ParsedData } from 'nest-csv-parser';
 import path from 'path';
 import { AppRepository } from './app.repository';
+import Joi from 'joi';
 
 class CSVEntity {
   year: string;
@@ -66,13 +67,23 @@ export class AppService implements OnModuleInit {
     let index = 0;
     const errors: string[] = [];
 
+    const ValidatorSchema = Joi.object({
+      year: Joi.number().required(),
+      title: Joi.string().required(),
+      studios: Joi.string().required(),
+      producers: Joi.string().required(),
+      winner: Joi.string().empty('').default('no'),
+    });
+
     for (const entity of entities.list) {
       index++;
 
-      const errorsFound = this.validateCsvEntity({ ...entity, index });
+      const { error } = ValidatorSchema.validate(entity);
 
-      if (errorsFound.length) {
-        errors.push(...errorsFound);
+      if (error) {
+        errors.push(
+          `Sorry! There is some error on the line ${index}: ${error.message}`,
+        );
         continue;
       }
 
@@ -84,7 +95,7 @@ export class AppService implements OnModuleInit {
     }
 
     if (errors.length) {
-      console.log('🚀 ~ AppService ~ importMoviesCsvFile ~ errors:', errors);
+      console.log('🚀 ERRORS FOUND:', errors);
     }
   }
 
