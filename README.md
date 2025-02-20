@@ -50,6 +50,12 @@ Ao iniciar o projeto é executado a carga de dados com base no arquivo armazenad
 $ pnpm start:dev
 ```
 
+## Executar os Testes
+
+```bash
+$ pnpm test
+```
+
 ## Execução da API
 
 ##### Swagger

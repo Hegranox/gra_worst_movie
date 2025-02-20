@@ -14,15 +14,6 @@ class CSVEntity {
   winner: 'yes' | '';
 }
 
-type Entity = {
-  index: number;
-  year: string;
-  title: string;
-  studios: string;
-  producers: string;
-  winner: 'yes' | '';
-};
-
 type Movie = {
   id: string;
   year: number;
@@ -42,12 +33,11 @@ export class AppService implements OnModuleInit {
   ) {}
 
   async onModuleInit() {
-    await this.importMoviesCsvFile();
+    const csvFilePath = path.join(__dirname, 'assets', 'movielist.csv');
+    await this.importMoviesCsvFile(csvFilePath);
   }
 
-  private async importMoviesCsvFile() {
-    const csvFilePath = path.join(__dirname, 'assets', 'movielist.csv');
-
+  async importMoviesCsvFile(csvFilePath: string) {
     try {
       fs.readFileSync(csvFilePath);
     } catch {
@@ -95,48 +85,8 @@ export class AppService implements OnModuleInit {
     }
 
     if (errors.length) {
-      console.log('🚀 ERRORS FOUND:', errors);
+      console.log(errors);
     }
-  }
-
-  private validateCsvEntity(entity: Entity) {
-    const errorsFound: string[] = [];
-
-    if (!entity.year) {
-      errorsFound.push(
-        `Sorry! I could not find the property 'year' in the line ${entity.index}`,
-      );
-    }
-
-    if (!entity.title) {
-      errorsFound.push(
-        `Sorry! I could not find the property 'title' in the line ${entity.index}`,
-      );
-    }
-
-    if (!entity.studios) {
-      errorsFound.push(
-        `Sorry! I could not find the property 'studios' in the line ${entity.index}`,
-      );
-    }
-
-    if (!entity.producers) {
-      errorsFound.push(
-        `Sorry! I could not find the property 'producers' in the line ${entity.index}`,
-      );
-    }
-
-    if (errorsFound.length) {
-      return errorsFound;
-    }
-
-    if (!Number(entity.year)) {
-      errorsFound.push(
-        `Sorry! The property 'year' has wrong type value in the line ${entity.index}`,
-      );
-    }
-
-    return errorsFound;
   }
 
   findAll() {
@@ -194,6 +144,13 @@ export class AppService implements OnModuleInit {
           });
         }
       });
+
+    if (!winnersWithAtLeast2Awards.length) {
+      return {
+        min: [],
+        max: [],
+      };
+    }
 
     const groupByWinRate = groupBy(winnersWithAtLeast2Awards, 'interval');
     const intervals = Object.keys(groupByWinRate)
